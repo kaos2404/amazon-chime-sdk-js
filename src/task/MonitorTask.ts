@@ -66,6 +66,9 @@ export default class MonitorTask extends BaseTask
     this.context.realtimeController.realtimeUnsubscribeToLocalSignalStrengthChange(
       this.checkAndSendWeakSignalEvent
     );
+    this.context.realtimeController.realtimeUnsubscribeToAttendeeIdPresence(
+      this.realtimeAttendeeIdPresenceCallback
+    );
     this.context.signalingClient.removeObserver(this);
   }
 
@@ -75,6 +78,9 @@ export default class MonitorTask extends BaseTask
     this.context.realtimeController.realtimeSubscribeToFatalError(this.realtimeFatalErrorCallback);
     this.context.realtimeController.realtimeSubscribeToLocalSignalStrengthChange(
       this.checkAndSendWeakSignalEvent
+    );
+    this.context.realtimeController.realtimeSubscribeToAttendeeIdPresence(
+      this.realtimeAttendeeIdPresenceCallback
     );
 
     this.context.connectionMonitor.start();
@@ -313,5 +319,20 @@ export default class MonitorTask extends BaseTask
     this.context.audioVideoController.handleMeetingSessionStatus(
       new MeetingSessionStatus(MeetingSessionStatusCode.RealtimeApiFailed)
     );
+  };
+
+  private realtimeAttendeeIdPresenceCallback = (
+    attendeeId: string,
+    present: boolean,
+    _externalUserId?: string,
+    _dropped?: boolean
+  ): void => {
+    if (attendeeId) {
+      if (present) {
+        this.context.presentAttendeeIds.add(attendeeId);
+      } else {
+        this.context.presentAttendeeIds.delete(attendeeId);
+      }
+    }
   };
 }

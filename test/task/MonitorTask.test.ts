@@ -230,6 +230,39 @@ describe('MonitorTask', () => {
       expect(spy.calledWith(AudioLogEvent.RedmicEndLoss)).to.be.true;
       realtimeSignalStrengthCallback(1);
     });
+
+    it('maintains a set of the present attendee IDs', async () => {
+      await task.run();
+      context.realtimeController.realtimeSetAttendeeIdPresence(
+        'attendee-id-1',
+        true,
+        'attendee-id-1',
+        false
+      );
+      context.realtimeController.realtimeSetAttendeeIdPresence(
+        'attendee-id-2',
+        true,
+        'attendee-id-2',
+        false
+      );
+      context.realtimeController.realtimeSetAttendeeIdPresence(
+        'attendee-id-3',
+        true,
+        'attendee-id-3',
+        true
+      );
+      context.realtimeController.realtimeSetAttendeeIdPresence(
+        'attendee-id-1',
+        false,
+        'attendee-id-1',
+        false
+      );
+      context.realtimeController.realtimeSetAttendeeIdPresence('', true, '', false);
+      expect(context.presentAttendeeIds.has('attendee-id-1')).to.be.false;
+      expect(context.presentAttendeeIds.has('attendee-id-2')).to.be.true;
+      expect(context.presentAttendeeIds.has('attendee-id-3')).to.be.true;
+      expect(context.presentAttendeeIds.has('')).to.be.false;
+    });
   });
 
   describe('cancel', () => {

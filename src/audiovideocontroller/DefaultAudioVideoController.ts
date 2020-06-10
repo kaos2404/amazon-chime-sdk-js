@@ -52,6 +52,7 @@ import SetLocalDescriptionTask from '../task/SetLocalDescriptionTask';
 import SetRemoteDescriptionTask from '../task/SetRemoteDescriptionTask';
 import SubscribeAndReceiveSubscribeAckTask from '../task/SubscribeAndReceiveSubscribeAckTask';
 import TimeoutTask from '../task/TimeoutTask';
+import ValidateAttendeePresenceTask from '../task/ValidateAttendeePresenceTask';
 import DefaultTransceiverController from '../transceivercontroller/DefaultTransceiverController';
 import DefaultVideoCaptureAndEncodeParameter from '../videocaptureandencodeparameter/DefaultVideoCaptureAndEncodeParameter';
 import DefaultVideoStreamIdSet from '../videostreamidset/DefaultVideoStreamIdSet';
@@ -241,6 +242,7 @@ export default class DefaultAudioVideoController implements AudioVideoController
     this.meetingSessionContext.reconnectController = this._reconnectController;
     this.meetingSessionContext.audioDeviceInformation = {};
     this.meetingSessionContext.videoDeviceInformation = {};
+    this.meetingSessionContext.presentAttendeeIds = new Set<string>();
 
     if (!reconnecting) {
       this._reconnectController.reset();
@@ -290,6 +292,7 @@ export default class DefaultAudioVideoController implements AudioVideoController
           ]),
           this.configuration.connectionTimeoutMs
         ),
+        new ValidateAttendeePresenceTask(this.meetingSessionContext),
       ]).run();
       this.sessionStateController.perform(SessionStateControllerAction.FinishConnecting, () => {
         this.actionFinishConnecting();

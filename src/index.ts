@@ -266,6 +266,7 @@ import TimeoutScheduler from './scheduler/TimeoutScheduler';
 import TimeoutTask from './task/TimeoutTask';
 import TransceiverController from './transceivercontroller/TransceiverController';
 import UnusableAudioWarningConnectionHealthPolicy from './connectionhealthpolicy/UnusableAudioWarningConnectionHealthPolicy';
+import ValidateAttendeePresenceTask from './task/ValidateAttendeePresenceTask';
 import Versioning from './versioning/Versioning';
 import VideoCaptureAndEncodeParameter from './videocaptureandencodeparameter/VideoCaptureAndEncodeParameter';
 import VideoDownlinkBandwidthPolicy from './videodownlinkbandwidthpolicy/VideoDownlinkBandwidthPolicy';
@@ -554,6 +555,7 @@ export {
   TimeoutTask,
   TransceiverController,
   UnusableAudioWarningConnectionHealthPolicy,
+  ValidateAttendeePresenceTask,
   Versioning,
   VideoCaptureAndEncodeParameter,
   VideoDownlinkBandwidthPolicy,

@@ -112,4 +112,6 @@ export default class AudioVideoControllerState {
   audioDeviceInformation: { [id: string]: string } = {};
 
   videoDeviceInformation: { [id: string]: string } = {};
+
+  presentAttendeeIds: Set<string> = new Set<string>();
 }
