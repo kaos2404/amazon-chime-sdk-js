@@ -1066,6 +1066,74 @@ describe('DefaultAudioVideoController', () => {
       });
     });
 
+    it('reconnects when the reconnect operation itself fails', done => {
+      audioVideoController = new DefaultAudioVideoController(
+        configuration,
+        new NoOpDebugLogger(),
+        webSocketAdapter,
+        new NoOpMediaStreamBroker(),
+        reconnectController
+      );
+      class TestObserver implements AudioVideoObserver {
+        audioVideoDidStop(sessionStatus: MeetingSessionStatus): void {
+          expect(sessionStatus.statusCode()).to.equal(MeetingSessionStatusCode.Left);
+          done();
+        }
+      }
+      audioVideoController.addObserver(new TestObserver());
+      const spy = sinon.spy(reconnectController, 'retryWithBackoff');
+
+      start().then(() => {
+        configuration.connectionTimeoutMs = 100;
+        audioVideoController.reconnect(new MeetingSessionStatus(MeetingSessionStatusCode.Left));
+
+        delay(configuration.connectionTimeoutMs * 2.5).then(async () => {
+          expect(spy.callCount).to.equal(3);
+          await stop();
+        });
+      });
+    });
+
+    it('uses the custom connection health policy configuration if passed', done => {
+      // Set the missed pongs upper threshold to zero to force restarting the session.
+      const connectionHealthPolicyConfiguration = new ConnectionHealthPolicyConfiguration();
+      connectionHealthPolicyConfiguration.connectionWaitTimeMs = 0;
+      connectionHealthPolicyConfiguration.missedPongsUpperThreshold = 0;
+      configuration.connectionHealthPolicyConfiguration = connectionHealthPolicyConfiguration;
+
+      audioVideoController = new DefaultAudioVideoController(
+        configuration,
+        new NoOpDebugLogger(),
+        webSocketAdapter,
+        new NoOpMediaStreamBroker(),
+        reconnectController
+      );
+      const reconnectSpy = sinon.spy(audioVideoController, 'reconnect');
+
+      class TestObserver implements AudioVideoObserver {
+        audioVideoDidStop(sessionStatus: MeetingSessionStatus): void {
+          expect(sessionStatus.statusCode()).to.equal(MeetingSessionStatusCode.Left);
+          done();
+        }
+      }
+      audioVideoController.addObserver(new TestObserver());
+      start();
+
+      // connectionHealthDidChange in MonitorTask is called for the first time
+      // after the stats collector receives metrics after 1000ms.
+      delay(1500).then(async () => {
+        expect(reconnectSpy.called).to.be.true;
+
+        // Finish the reconnect operation and stop this test.
+        webSocketAdapter.send(makeIndexFrame());
+        await delay(200);
+        await sendICEEventAndSubscribeAckFrame();
+        await stop();
+      });
+    }).timeout(5000);
+  });
+
+  describe('reconnect for no attendee presence', () => {
     it('reconnects when the start operation fails due to no attendee presence event', function(done) {
       this.timeout(15000);
 
@@ -1172,10 +1240,22 @@ describe('DefaultAudioVideoController', () => {
       });
     });
 
-    it('reconnects when the reconnect operation itself fails', done => {
+    it('attempts to get user media in Safari during reconnect for no attendee presence event', function(done) {
+      setUserAgent(
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.2 Safari/605.1.15'
+      );
+
+      this.timeout(15000);
+
+      const logger = new NoOpDebugLogger();
+      const spy = sinon.spy(logger, 'error');
+      const getUserMediaSpy = sinon.spy(navigator.mediaDevices, 'getUserMedia');
+      const noAttendeeTimeout = configuration.attendeePresenceTimeoutMs;
+
+      configuration.connectionTimeoutMs = 15000;
       audioVideoController = new DefaultAudioVideoController(
         configuration,
-        new NoOpDebugLogger(),
+        logger,
         webSocketAdapter,
         new NoOpMediaStreamBroker(),
         reconnectController
@@ -1183,60 +1263,91 @@ describe('DefaultAudioVideoController', () => {
       class TestObserver implements AudioVideoObserver {
         audioVideoDidStop(sessionStatus: MeetingSessionStatus): void {
           expect(sessionStatus.statusCode()).to.equal(MeetingSessionStatusCode.Left);
+          expect(spy.calledWith('connection failed with status code: NoAttendeePresent')).to.be
+            .true;
+          expect(getUserMediaSpy.calledOnce).to.be.true;
+          spy.restore();
+          getUserMediaSpy.restore();
           done();
         }
       }
       audioVideoController.addObserver(new TestObserver());
-      const spy = sinon.spy(reconnectController, 'retryWithBackoff');
 
-      start().then(() => {
-        configuration.connectionTimeoutMs = 100;
-        audioVideoController.reconnect(new MeetingSessionStatus(MeetingSessionStatusCode.Left));
+      // Start and wait for the audio stream ID info frame.
+      // SDK uses this info frame to send the attendee presence event.
+      audioVideoController.start();
+      delay().then(async () => {
+        await delay(300);
+        webSocketAdapter.send(makeIndexFrame());
+        await delay(300);
+        await sendICEEventAndSubscribeAckFrame();
+        await delay();
+      });
 
-        delay(configuration.connectionTimeoutMs * 2.5).then(async () => {
-          expect(spy.callCount).to.equal(3);
-          await stop();
-        });
+      delay(noAttendeeTimeout + 2000).then(async () => {
+        // Finish LeaveAndReceiveLeaveAckTask executed by the failed "start."
+        webSocketAdapter.send(makeLeaveAckFrame());
+        await delay(300);
+
+        // Finish the start operation and stop this test.
+        webSocketAdapter.send(makeIndexFrame());
+        await delay(300);
+        await sendICEEventAndSubscribeAckFrame();
+        await delay();
+        await sendAudioStreamIdInfoFrame();
+        await delay(300);
+        await stop();
       });
     });
 
-    it('uses the custom connection health policy configuration if passed', done => {
-      // Set the missed pongs upper threshold to zero to force restarting the session.
-      const connectionHealthPolicyConfiguration = new ConnectionHealthPolicyConfiguration();
-      connectionHealthPolicyConfiguration.connectionWaitTimeMs = 0;
-      connectionHealthPolicyConfiguration.missedPongsUpperThreshold = 0;
-      configuration.connectionHealthPolicyConfiguration = connectionHealthPolicyConfiguration;
+    it('fails to join a meeting in Safari if getting user media is declined during reconnect', function(done) {
+      setUserAgent(
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/13.0.2 Safari/605.1.15'
+      );
 
+      this.timeout(15000);
+
+      domMockBehavior.getUserMediaSucceeds = false;
+
+      const logger = new NoOpDebugLogger();
+      const getUserMediaSpy = sinon.spy(navigator.mediaDevices, 'getUserMedia');
+      const noAttendeeTimeout = configuration.attendeePresenceTimeoutMs;
+
+      configuration.connectionTimeoutMs = 15000;
       audioVideoController = new DefaultAudioVideoController(
         configuration,
-        new NoOpDebugLogger(),
+        logger,
         webSocketAdapter,
         new NoOpMediaStreamBroker(),
         reconnectController
       );
-      const reconnectSpy = sinon.spy(audioVideoController, 'reconnect');
-
       class TestObserver implements AudioVideoObserver {
         audioVideoDidStop(sessionStatus: MeetingSessionStatus): void {
-          expect(sessionStatus.statusCode()).to.equal(MeetingSessionStatusCode.Left);
+          expect(sessionStatus.statusCode()).to.equal(MeetingSessionStatusCode.AudioDisconnected);
+          expect(getUserMediaSpy.calledOnce).to.be.true;
+          getUserMediaSpy.restore();
           done();
         }
       }
       audioVideoController.addObserver(new TestObserver());
-      start();
 
-      // connectionHealthDidChange in MonitorTask is called for the first time
-      // after the stats collector receives metrics after 1000ms.
-      delay(1500).then(async () => {
-        expect(reconnectSpy.called).to.be.true;
-
-        // Finish the reconnect operation and stop this test.
+      // Start and wait for the audio stream ID info frame.
+      // SDK uses this info frame to send the attendee presence event.
+      audioVideoController.start();
+      delay().then(async () => {
+        await delay(300);
         webSocketAdapter.send(makeIndexFrame());
-        await delay(200);
+        await delay(300);
         await sendICEEventAndSubscribeAckFrame();
-        await stop();
+        await delay();
       });
-    }).timeout(5000);
+
+      delay(noAttendeeTimeout + 2000).then(async () => {
+        // Finish LeaveAndReceiveLeaveAckTask executed by the failed "start."
+        webSocketAdapter.send(makeLeaveAckFrame());
+        await delay(300);
+      });
+    });
   });
 
   describe('getters', () => {

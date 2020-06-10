@@ -299,10 +299,24 @@ export default class DefaultAudioVideoController implements AudioVideoController
       });
     } catch (error) {
       this.sessionStateController.perform(SessionStateControllerAction.Fail, async () => {
-        const status = new MeetingSessionStatus(
+        let status = new MeetingSessionStatus(
           this.getMeetingStatusCode(error) || MeetingSessionStatusCode.TaskFailed
         );
         await this.actionDisconnect(status, true);
+        
+        // TODO: Remove this workaround once the root cause is identified. In Safari, SDK doesn't receive
+        // an attendee presence event if joining the session with an empty audio input device.
+        if (
+          this.meetingSessionContext.browserBehavior.requiresGetUserMediaForNoAttendeePresence() &&
+          status.statusCode() === MeetingSessionStatusCode.NoAttendeePresent
+        ) {
+          try {
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+          } catch (error) {
+            status = new MeetingSessionStatus(MeetingSessionStatusCode.AudioDisconnected);
+          }
+        }
+
         if (!this.handleMeetingSessionStatus(status)) {
           this.forEachObserver(observer => {
             Maybe.of(observer.audioVideoDidStop).map(f => f.bind(observer)(status));
