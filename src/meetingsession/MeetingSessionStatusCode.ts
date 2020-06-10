@@ -120,9 +120,14 @@ export enum MeetingSessionStatusCode {
   IncompatibleSDP = 21,
 
   /**
-   * This can happen when you attempt to join a meeting which has ended
+   * This can happen when you attempt to join a meeting which has ended or attendee got removed
    */
   TURNCredentialsForbidden = 22,
+
+  /**
+   * This can happen when you attempt to join a meeting which has ended
+   */
+  TURNMeetingEnded = 23,
 }
 
 export default MeetingSessionStatusCode;
