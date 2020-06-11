@@ -85,6 +85,7 @@ export default class DefaultDeviceController implements DeviceControllerBasedMed
   async chooseAudioInputDevice(device: Device): Promise<DevicePermission> {
     const result = await this.chooseInputDevice('audio', device, false);
     this.trace('chooseAudioInputDevice', device, DevicePermission[result]);
+    console.log('&&&& chooseAudioInputDevice');
     return result;
   }
 
@@ -97,6 +98,7 @@ export default class DefaultDeviceController implements DeviceControllerBasedMed
 
   async chooseAudioOutputDevice(deviceId: string | null): Promise<void> {
     this.audioOutputDeviceId = deviceId;
+    console.log('&&&& chooseAudioInputDevice');
     this.bindAudioOutput();
     this.trace('chooseAudioOutputDevice', deviceId, null);
     return;
@@ -107,9 +109,32 @@ export default class DefaultDeviceController implements DeviceControllerBasedMed
   }
 
   addDeviceChangeObserver(observer: DeviceChangeObserver): void {
+    console.log('adding device change observer &&&&&');
     this.logger.info('adding device change observer');
     this.deviceChangeObservers.add(observer);
     this.trace('addDeviceChangeObserver');
+  }
+
+  // audioInputsChanged?(freshAudioInputDeviceList?: MediaDeviceInfo[]): void {
+  //     this.updateDeviceInfoCacheFromBrowser();
+  //     const listCachedDevicesOfAudioInput = this.listCachedDevicesOfKind('audioinput');
+  //     console.log("listCachedDevicesOfAudioInput &&&& listCachedDevicesOfAudioInput");
+  //     console.log(listCachedDevicesOfAudioInput);
+  //     new AsyncScheduler().start(() => {
+  //       this.chooseAudioInputDevice(listCachedDevicesOfAudioInput[listCachedDevicesOfAudioInput.length-1].deviceId); //last added device
+  //       //this.chooseAudioInputDevice('default'); //default
+  //     });
+  //   }
+  //
+  async chooseDefaultInputDevice(): Promise<void> {
+    this.updateDeviceInfoCacheFromBrowser();
+    const listCachedDevicesOfAudioInput = this.listCachedDevicesOfKind('audioinput');
+    console.log('listCachedDevicesOfAudioInput &&&& listCachedDevicesOfAudioInput');
+    console.log(listCachedDevicesOfAudioInput);
+    await this.chooseAudioInputDevice(
+      listCachedDevicesOfAudioInput[listCachedDevicesOfAudioInput.length - 1].deviceId
+    ); //last added device
+    await this.chooseAudioInputDevice('default'); //default
   }
 
   removeDeviceChangeObserver(observer: DeviceChangeObserver): void {
@@ -440,7 +465,9 @@ export default class DefaultDeviceController implements DeviceControllerBasedMed
     const newAudioOutputDevices = this.listCachedDevicesOfKind('audiooutput');
     this.forEachObserver((observer: DeviceChangeObserver) => {
       if (!this.areDeviceListsEqual(oldAudioInputDevices, newAudioInputDevices)) {
+        console.log(oldAudioInputDevices);
         Maybe.of(observer.audioInputsChanged).map(f => f.bind(observer)(newAudioInputDevices));
+        console.log(newAudioInputDevices);
       }
       if (!this.areDeviceListsEqual(oldVideoInputDevices, newVideoInputDevices)) {
         Maybe.of(observer.videoInputsChanged).map(f => f.bind(observer)(newVideoInputDevices));
@@ -454,8 +481,13 @@ export default class DefaultDeviceController implements DeviceControllerBasedMed
 
   private forEachObserver(observerFunc: (observer: DeviceChangeObserver) => void): void {
     for (const observer of this.deviceChangeObservers) {
+      console.log('&&&& 11111');
       new AsyncScheduler().start(() => {
+        console.log('&&&& 22222');
+
         if (this.deviceChangeObservers.has(observer)) {
+          console.log('&&&& 33333');
+
           observerFunc(observer);
         }
       });
@@ -481,6 +513,7 @@ export default class DefaultDeviceController implements DeviceControllerBasedMed
   ): Promise<DevicePermission> {
     this.inputDeviceCount += 1;
     const callCount = this.inputDeviceCount;
+    console.log('------------------------' + callCount);
 
     if (device === null && kind === 'video') {
       this.lastNoVideoInputDeviceCount = this.inputDeviceCount;
@@ -495,6 +528,9 @@ export default class DefaultDeviceController implements DeviceControllerBasedMed
       kind,
       device
     );
+    console.log('------------------------' + kind);
+    console.log(proposedConstraints);
+    console.log(this.activeDevices);
     if (
       this.activeDevices[kind] &&
       this.activeDevices[kind].matchesConstraints(proposedConstraints) &&

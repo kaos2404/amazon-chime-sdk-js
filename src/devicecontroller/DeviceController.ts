@@ -76,6 +76,11 @@ export default interface DeviceController {
   chooseAudioOutputDevice(deviceId: string | null): Promise<void>;
 
   /**
+   * Selects the default input device for use.
+   */
+  chooseDefaultInputDevice(): void;
+
+  /**
    * Adds an observer to receive callbacks about device changes.
    */
   addDeviceChangeObserver(observer: DeviceChangeObserver): void;

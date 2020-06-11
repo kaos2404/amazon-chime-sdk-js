@@ -439,6 +439,10 @@ export default class DefaultAudioVideoFacade implements AudioVideoFacade {
     this.trace('removeContentShareObserver');
   }
 
+  chooseDefaultInputDevice(): void {
+    this.deviceController.chooseDefaultInputDevice();
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private trace(name: string, input?: any, output?: any): void {
     const meetingId = this.audioVideoController.configuration.meetingId;

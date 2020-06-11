@@ -51,6 +51,8 @@ export default class NoOpDeviceController extends NoOpMediaStreamBroker
     return null;
   }
 
+  chooseDefaultInputDevice(): void {}
+
   chooseVideoInputQuality(
     _width: number,
     _height: number,

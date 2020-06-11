@@ -588,6 +588,7 @@ export class DemoMeetingApp implements AudioVideoObserver, DeviceChangeObserver,
 
   audioInputsChanged(_freshAudioInputDeviceList: MediaDeviceInfo[]): void {
     this.populateAudioInputList();
+    this.audioVideo.chooseDefaultInputDevice();
   }
 
   videoInputsChanged(_freshVideoInputDeviceList: MediaDeviceInfo[]): void {
@@ -1024,6 +1025,7 @@ export class DemoMeetingApp implements AudioVideoObserver, DeviceChangeObserver,
       await this.audioVideo.listAudioInputDevices(),
       additionalDevices,
       async (name: string) => {
+        console.log(name + "&&&&&&&");
         await this.audioVideo.chooseAudioInputDevice(this.audioInputSelectionToDevice(name));
       }
     );
