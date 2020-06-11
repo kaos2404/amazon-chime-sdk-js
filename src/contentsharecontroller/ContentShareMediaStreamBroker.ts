@@ -58,6 +58,10 @@ export default class ContentShareMediaStreamBroker implements MediaStreamBroker 
     throw new Error('unsupported');
   }
 
+  requestAudioInputStream(): Promise<void> {
+    throw new Error('unsupported');
+  }
+
   async acquireScreenCaptureDisplayInputStream(
     sourceId?: string,
     frameRate?: number

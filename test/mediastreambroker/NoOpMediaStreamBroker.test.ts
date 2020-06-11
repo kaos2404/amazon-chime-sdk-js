@@ -59,4 +59,15 @@ describe('NoOpMediaStreamBroker', () => {
       new NoOpMediaStreamBroker().releaseMediaStream(Substitute.for<MediaStream>());
     });
   });
+
+  describe('requestAudioInputStream', () => {
+    it('can fail to request an audio input device', async () => {
+      await new NoOpMediaStreamBroker()
+        .requestAudioInputStream()
+        .then(() => {
+          assert.fail();
+        })
+        .catch(() => {});
+    });
+  });
 });

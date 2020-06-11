@@ -1145,12 +1145,18 @@ describe('DefaultAudioVideoController', () => {
       const spy = sinon.spy(logger, 'error');
       const noAttendeeTimeout = configuration.attendeePresenceTimeoutMs;
 
+      class TestMediaStreamBroker extends NoOpMediaStreamBroker {
+        requestAudioInputStream(): Promise<void> {
+          return Promise.resolve();
+        }
+      }
+
       configuration.connectionTimeoutMs = 15000;
       audioVideoController = new DefaultAudioVideoController(
         configuration,
         logger,
         webSocketAdapter,
-        new NoOpMediaStreamBroker(),
+        new TestMediaStreamBroker(),
         reconnectController
       );
       class TestObserver implements AudioVideoObserver {
@@ -1197,13 +1203,19 @@ describe('DefaultAudioVideoController', () => {
       const logger = new NoOpDebugLogger();
       const spy = sinon.spy(logger, 'error');
 
+      class TestMediaStreamBroker extends NoOpMediaStreamBroker {
+        requestAudioInputStream(): Promise<void> {
+          return Promise.resolve();
+        }
+      }
+
       configuration.connectionTimeoutMs = 2000;
       configuration.attendeePresenceTimeoutMs = 0;
       audioVideoController = new DefaultAudioVideoController(
         configuration,
         logger,
         webSocketAdapter,
-        new NoOpMediaStreamBroker(),
+        new TestMediaStreamBroker(),
         reconnectController
       );
       class TestObserver implements AudioVideoObserver {
@@ -1251,9 +1263,16 @@ describe('DefaultAudioVideoController', () => {
 
       this.timeout(15000);
 
+      class TestMediaStreamBroker extends NoOpMediaStreamBroker {
+        requestAudioInputStream(): Promise<void> {
+          return Promise.resolve();
+        }
+      }
+
       const logger = new NoOpDebugLogger();
       const spy = sinon.spy(logger, 'error');
-      const getUserMediaSpy = sinon.spy(navigator.mediaDevices, 'getUserMedia');
+      const broker = new TestMediaStreamBroker();
+      const getUserMediaSpy = sinon.spy(broker, 'requestAudioInputStream');
       const noAttendeeTimeout = configuration.attendeePresenceTimeoutMs;
 
       configuration.connectionTimeoutMs = 15000;
@@ -1261,7 +1280,7 @@ describe('DefaultAudioVideoController', () => {
         configuration,
         logger,
         webSocketAdapter,
-        new NoOpMediaStreamBroker(),
+        broker,
         reconnectController
       );
       class TestObserver implements AudioVideoObserver {
@@ -1311,9 +1330,16 @@ describe('DefaultAudioVideoController', () => {
 
       this.timeout(15000);
 
+      class TestMediaStreamBroker extends NoOpMediaStreamBroker {
+        requestAudioInputStream(): Promise<void> {
+          return Promise.resolve();
+        }
+      }
+
       const logger = new NoOpDebugLogger();
       const spy = sinon.spy(logger, 'error');
-      const getUserMediaSpy = sinon.spy(navigator.mediaDevices, 'getUserMedia');
+      const broker = new TestMediaStreamBroker();
+      const getUserMediaSpy = sinon.spy(broker, 'requestAudioInputStream');
       const noAttendeeTimeout = configuration.attendeePresenceTimeoutMs;
 
       configuration.connectionTimeoutMs = 15000;
@@ -1321,7 +1347,7 @@ describe('DefaultAudioVideoController', () => {
         configuration,
         logger,
         webSocketAdapter,
-        new NoOpMediaStreamBroker(),
+        broker,
         reconnectController
       );
       class TestObserver implements AudioVideoObserver {
@@ -1377,10 +1403,17 @@ describe('DefaultAudioVideoController', () => {
 
       this.timeout(15000);
 
+      class TestMediaStreamBroker extends NoOpMediaStreamBroker {
+        requestAudioInputStream(): Promise<void> {
+          return Promise.reject();
+        }
+      }
+
       domMockBehavior.getUserMediaSucceeds = false;
 
       const logger = new NoOpDebugLogger();
-      const getUserMediaSpy = sinon.spy(navigator.mediaDevices, 'getUserMedia');
+      const broker = new TestMediaStreamBroker();
+      const getUserMediaSpy = sinon.spy(broker, 'requestAudioInputStream');
       const noAttendeeTimeout = configuration.attendeePresenceTimeoutMs;
 
       configuration.connectionTimeoutMs = 15000;
@@ -1388,7 +1421,7 @@ describe('DefaultAudioVideoController', () => {
         configuration,
         logger,
         webSocketAdapter,
-        new NoOpMediaStreamBroker(),
+        broker,
         reconnectController
       );
       class TestObserver implements AudioVideoObserver {

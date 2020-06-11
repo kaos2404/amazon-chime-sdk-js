@@ -791,4 +791,12 @@ describe('DefaultDeviceController', () => {
       await new Promise(resolve => new TimeoutScheduler(100).start(resolve));
     });
   });
+
+  describe('prompts the permission dialog', () => {
+    it('requestAudioInputStream', async () => {
+      const spy = sinon.spy(navigator.mediaDevices, 'getUserMedia');
+      await deviceController.requestAudioInputStream();
+      expect(spy.calledOnce).to.be.true;
+    });
+  });
 });

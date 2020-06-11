@@ -326,7 +326,7 @@ export default class DefaultAudioVideoController implements AudioVideoController
             (error && error.message && error.message.includes('no ice candidates were gathered')))
         ) {
           try {
-            await navigator.mediaDevices.getUserMedia({ audio: true });
+            await this.mediaStreamBroker.requestAudioInputStream();
           } catch (error) {
             status = new MeetingSessionStatus(MeetingSessionStatusCode.AudioDisconnected);
           }

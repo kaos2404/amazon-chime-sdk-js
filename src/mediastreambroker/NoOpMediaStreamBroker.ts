@@ -23,4 +23,8 @@ export default class NoOpMediaStreamBroker implements MediaStreamBroker {
   releaseMediaStream(_mediaStreamToRelease: MediaStream): void {}
 
   bindToAudioVideoController(_audioVideoController: AudioVideoController): void {}
+
+  requestAudioInputStream(): Promise<void> {
+    return Promise.reject();
+  }
 }

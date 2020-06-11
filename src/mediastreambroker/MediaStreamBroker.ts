@@ -38,4 +38,10 @@ export default interface MediaStreamBroker {
    * automatically by the meeting session constructor.
    */
   bindToAudioVideoController(audioVideoController: AudioVideoController): void;
+
+  /**
+   * Called when the session needs to prompt the user for permission to use
+   * an audio input. 
+   */
+  requestAudioInputStream(): Promise<void>;
 }

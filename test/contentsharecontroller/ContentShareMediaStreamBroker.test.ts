@@ -285,4 +285,12 @@ describe('ContentShareMediaStreamBroker', () => {
       }).to.throw('unsupported');
     });
   });
+
+  describe('requestAudioInputStream', () => {
+    it('not supported', () => {
+      expect(() => {
+        contentShareMediaStreamBroker.requestAudioInputStream();
+      }).to.throw('unsupported');
+    });
+  });
 });

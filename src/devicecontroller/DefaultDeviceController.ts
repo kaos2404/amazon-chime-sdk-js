@@ -261,6 +261,10 @@ export default class DefaultDeviceController implements DeviceControllerBasedMed
     this.bindAudioOutput();
   }
 
+  async requestAudioInputStream(): Promise<void> {
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+  }
+
   static createEmptyAudioDevice(): Device {
     return DefaultDeviceController.synthesizeAudioDevice(0);
   }
