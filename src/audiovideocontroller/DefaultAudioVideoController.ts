@@ -52,6 +52,7 @@ import SetLocalDescriptionTask from '../task/SetLocalDescriptionTask';
 import SetRemoteDescriptionTask from '../task/SetRemoteDescriptionTask';
 import SubscribeAndReceiveSubscribeAckTask from '../task/SubscribeAndReceiveSubscribeAckTask';
 import TimeoutTask from '../task/TimeoutTask';
+import WaitForAttendeePresenceTask from '../task/WaitForAttendeePresenceTask';
 import DefaultTransceiverController from '../transceivercontroller/DefaultTransceiverController';
 import DefaultVideoCaptureAndEncodeParameter from '../videocaptureandencodeparameter/DefaultVideoCaptureAndEncodeParameter';
 import DefaultVideoStreamIdSet from '../videostreamidset/DefaultVideoStreamIdSet';
@@ -285,21 +286,52 @@ export default class DefaultAudioVideoController implements AudioVideoController
               new SetLocalDescriptionTask(this.meetingSessionContext),
               new FinishGatheringICECandidatesTask(this.meetingSessionContext),
               new SubscribeAndReceiveSubscribeAckTask(this.meetingSessionContext),
-              new SetRemoteDescriptionTask(this.meetingSessionContext),
+              ...(this.meetingSessionContext.meetingSessionConfiguration
+                .attendeePresenceTimeoutMs === 0
+                ? [new SetRemoteDescriptionTask(this.meetingSessionContext)]
+                : []),
             ]),
           ]),
           this.configuration.connectionTimeoutMs
         ),
+        ...(this.meetingSessionContext.meetingSessionConfiguration.attendeePresenceTimeoutMs > 0
+          ? [
+              new TimeoutTask(
+                this.logger,
+                new ParallelGroupTask(this.logger, 'FinalizeConnection', [
+                  new WaitForAttendeePresenceTask(this.meetingSessionContext),
+                  new SetRemoteDescriptionTask(this.meetingSessionContext),
+                ]),
+                this.meetingSessionContext.meetingSessionConfiguration.attendeePresenceTimeoutMs
+              ),
+            ]
+          : []),
       ]).run();
       this.sessionStateController.perform(SessionStateControllerAction.FinishConnecting, () => {
         this.actionFinishConnecting();
       });
     } catch (error) {
       this.sessionStateController.perform(SessionStateControllerAction.Fail, async () => {
-        const status = new MeetingSessionStatus(
+        let status = new MeetingSessionStatus(
           this.getMeetingStatusCode(error) || MeetingSessionStatusCode.TaskFailed
         );
         await this.actionDisconnect(status, true);
+
+        // TODO: Remove this workaround once the root cause is identified.
+        // Assume you haven't allowed microphone before and joined the session with an empty audio device.
+        // In Safari, SDK doesn't receive an attendee presence event. In Firefox, no ice candidates were gathered.
+        if (
+          this.meetingSessionContext.browserBehavior.requiresGetUserMediaForNoAttendeePresence() &&
+          (status.statusCode() === MeetingSessionStatusCode.NoAttendeePresent ||
+            (error && error.message && error.message.includes('no ice candidates were gathered')))
+        ) {
+          try {
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+          } catch (error) {
+            status = new MeetingSessionStatus(MeetingSessionStatusCode.AudioDisconnected);
+          }
+        }
+
         if (!this.handleMeetingSessionStatus(status)) {
           this.forEachObserver(observer => {
             Maybe.of(observer.audioVideoDidStop).map(f => f.bind(observer)(status));

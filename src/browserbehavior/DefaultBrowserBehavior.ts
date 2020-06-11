@@ -78,6 +78,10 @@ export default class DefaultBrowserBehavior implements BrowserBehavior {
     return !this.isIOSSafari();
   }
 
+  requiresGetUserMediaForNoAttendeePresence(): boolean {
+    return this.isSafari() || this.isFirefox();
+  }
+
   requiresIceCandidateGatheringTimeoutWorkaround(): boolean {
     return this.hasChromiumWebRTC();
   }

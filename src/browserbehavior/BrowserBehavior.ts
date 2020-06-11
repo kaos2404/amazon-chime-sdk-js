@@ -63,6 +63,12 @@ export default interface BrowserBehavior {
   requiresCheckForSdpConnectionAttributes(): boolean;
 
   /**
+   * Returns whether the browser requires to prompt the user for audio permission
+   * when no attendee is present
+   */
+  requiresGetUserMediaForNoAttendeePresence(): boolean;
+
+  /**
    * Returns whether screen share is unsupported by the browser
    */
   screenShareUnsupported(): boolean;
